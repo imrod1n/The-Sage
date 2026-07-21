@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -18,14 +19,12 @@ client_ai = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
+tree = app_commands.CommandTree(client)
+
 user_context = {}
 
-async def cmd_reset(message):
-    user_context[message.author.id] = []
-    await message.channel.send("Контекст сброшен 🙂")
-    return
-
-async def cmd_help(message):
+@tree.command(name="help", description="Показать команды")
+async def cmd_help(interaction: discord.Interaction):
     help_text = (
         "Привет! Я мудрец, который может отвечать на твои вопросы.\n"
         "Напиши`мудрец <твой вопрос>` чтобы задать вопрос.\n"
@@ -34,20 +33,21 @@ async def cmd_help(message):
         "`/reset` - сбросить контекст беседы.\n"
         "`/help` - показать это сообщение."
     )
-    await message.channel.send(help_text)
+    await interaction.response.send_message(help_text)
     return
 
-commands = {
-    "/reset": cmd_reset,
-    "/help": cmd_help
-}
+@tree.command(name="reset", description="Сбросить контекст")
+async def cmd_reset(interaction: discord.Interaction):
+    user_context[interaction.user.id] = []
+    await interaction.response.send_message("Контекст сброшен 🙂")
+    return
 
 def ask_ai(user_id, prompt):
     if user_id not in user_context:
         user_context[user_id] = []
 
     user_context[user_id].append({"role": "user", "content": prompt})
-    user_context[user_id] = user_context[user_id][-6:]
+    user_context[user_id] = user_context[user_id][-10:]
 
     response = client_ai.chat.completions.create(
         model="openai/gpt-oss-120b",
@@ -61,6 +61,8 @@ def ask_ai(user_id, prompt):
 @client.event
 async def on_ready():
     print(f'Бот запущен как {client.user}')
+    await tree.sync()
+    print("Команды синхронизированы")
 
 @client.event
 async def on_message(message):
@@ -68,10 +70,6 @@ async def on_message(message):
         return
 
     text = message.content.lower()
-
-    if text in commands:
-        await commands[text](message)
-        return
 
     if text.startswith("мудрец"):
         user_text = message.content[7:]
