@@ -20,6 +20,28 @@ client_ai = OpenAI(
 
 user_context = {}
 
+async def cmd_reset(message):
+    user_context[message.author.id] = []
+    await message.channel.send("Контекст сброшен 🙂")
+    return
+
+async def cmd_help(message):
+    help_text = (
+        "Привет! Я мудрец, который может отвечать на твои вопросы.\n"
+        "Напиши`мудрец <твой вопрос>` чтобы задать вопрос.\n"
+        "Команды:\n"
+        "`мудрец <твой вопрос>` - задать вопрос мудрецу.\n"
+        "`/reset` - сбросить контекст беседы.\n"
+        "`/help` - показать это сообщение."
+    )
+    await message.channel.send(help_text)
+    return
+
+commands = {
+    "/reset": cmd_reset,
+    "/help": cmd_help
+}
+
 def ask_ai(user_id, prompt):
     if user_id not in user_context:
         user_context[user_id] = []
@@ -46,6 +68,10 @@ async def on_message(message):
         return
 
     text = message.content.lower()
+
+    if text in commands:
+        await commands[text](message)
+        return
 
     if text.startswith("мудрец"):
         user_text = message.content[7:]
