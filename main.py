@@ -1,5 +1,6 @@
 import discord
 import os
+import asyncio
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -53,8 +54,7 @@ async def on_message(message):
             await message.channel.send("Спроси что-нибудь 🙂")
             return
 
-        answer = ask_ai(message.author.id, user_text)
-
+        answer = await asyncio.to_thread(ask_ai, message.author.id, user_text)
         await message.channel.send(answer)
 
 client.run(TOKEN)
