@@ -49,15 +49,20 @@ def ask_ai(user_id, prompt):
     user_context[user_id].append({"role": "user", "content": prompt})
     user_context[user_id] = user_context[user_id][-10:]
 
-    response = client_ai.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=user_context[user_id],
-        max_tokens=300
-    )
-    answer = response.choices[0].message.content
-    user_context[user_id].append({"role": "assistant", "content": answer})
-    return answer
-
+    try:
+        response = client_ai.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=user_context[user_id],
+            max_tokens=300
+        )
+        answer = response.choices[0].message.content
+        user_context[user_id].append({"role": "assistant", "content": answer})
+        return answer
+    
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return "Извини, произошла ошибка."
+    
 @client.event
 async def on_ready():
     print(f'Бот запущен как {client.user}')
