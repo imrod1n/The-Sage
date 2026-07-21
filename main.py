@@ -17,15 +17,23 @@ client_ai = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-def ask_ai(prompt):
+user_context = {}
+
+def ask_ai(user_id, prompt):
+    if user_id not in user_context:
+        user_context[user_id] = []
+
+    user_context[user_id].append({"role": "user", "content": prompt})
+    user_context[user_id] = user_context[user_id][-6:]
+
     response = client_ai.chat.completions.create(
         model="openai/gpt-oss-120b",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
+        messages=user_context[user_id],
         max_tokens=300
     )
-    return response.choices[0].message.content
+    answer = response.choices[0].message.content
+    user_context[user_id].append({"role": "assistant", "content": answer})
+    return answer
 
 @client.event
 async def on_ready():
@@ -45,7 +53,7 @@ async def on_message(message):
             await message.channel.send("Спроси что-нибудь 🙂")
             return
 
-        answer = ask_ai(user_text)
+        answer = ask_ai(message.author.id, user_text)
 
         await message.channel.send(answer)
 
