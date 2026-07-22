@@ -2,8 +2,18 @@ import discord
 from discord import app_commands
 import os
 import asyncio
+import logging
 from dotenv import load_dotenv
 from openai import OpenAI
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
+)
 
 load_dotenv()
 
@@ -60,17 +70,19 @@ def ask_ai(user_id, prompt):
         return answer
     
     except Exception as e:
-        print(f"Error occurred: {e}")
-        return "Извини, произошла ошибка."
+        logging.error(f"Ошибка API: {e}")
+        answer = "Я временно задумался... 🤔"
     
 @client.event
 async def on_ready():
     print(f'Бот запущен как {client.user}')
     await tree.sync()
     print("Команды синхронизированы")
+    logging.info(f"Бот запущен как {client.user}")
 
 @client.event
 async def on_message(message):
+    logging.info(f"{message.author} ({message.author.id}): {message.content}")
     if message.author == client.user:
         return
 
@@ -85,5 +97,6 @@ async def on_message(message):
 
         answer = await asyncio.to_thread(ask_ai, message.author.id, user_text)
         await message.channel.send(answer)
+        logging.info(f"Ответ бота: {answer}")
 
 client.run(TOKEN)
