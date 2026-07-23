@@ -54,10 +54,26 @@ async def cmd_reset(interaction: discord.Interaction):
 
 def ask_ai(user_id, prompt):
     if user_id not in user_context:
-        user_context[user_id] = []
+        user_context[user_id] = [        
+            {
+                "role": "system",
+                "content": (
+                    "Ты Мудрец — спокойный философ с лёгкой иронией. "
+                    "Ты отвечаешь кратко, но содержательно. "
+                    "Иногда используешь метафоры и притчи. "
+                    "Ты помогаешь человеку думать. "
+                    "Не говори, что ты нейросеть. "
+                    "Всегда оставайся в роли."
+                )
+            }
+        ]
 
-    user_context[user_id].append({"role": "user", "content": prompt})
-    user_context[user_id] = user_context[user_id][-10:]
+    system_message = user_context[user_id][0]
+    history = user_context[user_id][1:]
+
+    history = history[-10:]
+
+    user_context[user_id] = [system_message] + history
 
     try:
         response = client_ai.chat.completions.create(
