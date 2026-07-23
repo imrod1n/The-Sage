@@ -1,9 +1,8 @@
 import discord
 from discord import app_commands
-import os
 import asyncio
 import logging
-from dotenv import load_dotenv
+import config
 from openai import OpenAI
 
 logging.basicConfig(
@@ -15,9 +14,7 @@ logging.basicConfig(
     ]
 )
 
-load_dotenv()
-
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = config.DISCORD_TOKEN
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -25,8 +22,8 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 client_ai = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
+    api_key=config.AI_API_KEY,
+    base_url=config.AI_API_BASE_URL
 )
 
 tree = app_commands.CommandTree(client)
@@ -35,36 +32,21 @@ user_context = {}
 
 @tree.command(name="help", description="Показать команды")
 async def cmd_help(interaction: discord.Interaction):
-    help_text = (
-        "Привет! Я мудрец, который может отвечать на твои вопросы.\n"
-        "Напиши`мудрец <твой вопрос>` чтобы задать вопрос.\n"
-        "Команды:\n"
-        "`мудрец <твой вопрос>` - задать вопрос мудрецу.\n"
-        "`/reset` - сбросить контекст беседы.\n"
-        "`/help` - показать это сообщение."
-    )
-    await interaction.response.send_message(help_text)
+    await interaction.response.send_message(config.BOT_HELP_TEXT)
     return
 
 @tree.command(name="reset", description="Сбросить контекст")
 async def cmd_reset(interaction: discord.Interaction):
     user_context[interaction.user.id] = []
-    await interaction.response.send_message("Контекст сброшен 🙂")
+    await interaction.response.send_message(config.CONTEXT_RESET_MESSAGE)
     return
 
 def ask_ai(user_id, prompt):
     if user_id not in user_context:
-        user_context[user_id] = [        
+        user_context[user_id] = [
             {
                 "role": "system",
-                "content": (
-                    "Ты Мудрец — спокойный философ с лёгкой иронией. "
-                    "Ты отвечаешь кратко, но содержательно. "
-                    "Иногда используешь метафоры и притчи. "
-                    "Ты помогаешь человеку думать. "
-                    "Не говори, что ты нейросеть. "
-                    "Всегда оставайся в роли."
-                )
+                "content": config.AI_SYSTEM_PROMPT
             }
         ]
 
@@ -78,9 +60,9 @@ def ask_ai(user_id, prompt):
 
     try:
         response = client_ai.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=config.AI_MODEL,
             messages=user_context[user_id],
-            max_tokens=300
+            max_tokens=config.AI_MAX_TOKENS
         )
         answer = response.choices[0].message.content
         user_context[user_id].append({"role": "assistant", "content": answer})
@@ -88,7 +70,7 @@ def ask_ai(user_id, prompt):
     
     except Exception as e:
         logging.error(f"Ошибка API: {e}")
-        answer = "Я временно задумался... 🤔"
+        answer = config.API_ERROR_MESSAGE
     
 @client.event
 async def on_ready():
@@ -108,7 +90,7 @@ async def on_message(message):
         user_text = message.content[7:]
 
         if not user_text:
-            await message.channel.send("Спроси что-нибудь 🙂")
+            await message.channel.send(config.EMPTY_PROMPT_MESSAGE)
             return
 
         answer = await asyncio.to_thread(ask_ai, message.author.id, user_text)
