@@ -75,10 +75,9 @@ def ask_ai(user_id, prompt):
     
 @client.event
 async def on_ready():
-    print(f'Бот запущен как {client.user}')
-    await tree.sync()
-    print("Команды синхронизированы")
     logging.info(f"Бот запущен как {client.user}")
+    await tree.sync()
+    logging.info(f"Команды синхронизированы")
 
 @client.event
 async def on_message(message):
