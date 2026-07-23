@@ -1,19 +1,10 @@
 import discord
 from discord import app_commands
 import asyncio
-import logging
 import config
 from ai import ask_ai, user_context
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler("bot.log"),
-        logging.StreamHandler()
-    ]
-)
+import logger
+from commands import setup_commands
 
 TOKEN = config.DISCORD_TOKEN
 
@@ -24,27 +15,17 @@ client = discord.Client(intents=intents)
 
 tree = app_commands.CommandTree(client)
 
-
-@tree.command(name="help", description="Показать команды")
-async def cmd_help(interaction: discord.Interaction):
-    await interaction.response.send_message(config.BOT_HELP_TEXT)
-    return
-
-@tree.command(name="reset", description="Сбросить контекст")
-async def cmd_reset(interaction: discord.Interaction):
-    user_context[interaction.user.id] = []
-    await interaction.response.send_message(config.CONTEXT_RESET_MESSAGE)
-    return
+setup_commands(tree, user_context)
     
 @client.event
 async def on_ready():
-    logging.info(f"Бот запущен как {client.user}")
+    logger.logging.info(f"Бот запущен как {client.user}")
     await tree.sync()
-    logging.info(f"Команды синхронизированы")
+    logger.logging.info(f"Команды синхронизированы")
 
 @client.event
 async def on_message(message):
-    logging.info(f"{message.author} ({message.author.id}): {message.content}")
+    logger.logging.info(f"{message.author} ({message.author.id}): {message.content}")
     if message.author == client.user:
         return
 
@@ -59,6 +40,6 @@ async def on_message(message):
 
         answer = await asyncio.to_thread(ask_ai, message.author.id, user_text)
         await message.channel.send(answer)
-        logging.info(f"Ответ бота: {answer}")
+        logger.logging.info(f"Ответ бота: {answer}")
 
 client.run(TOKEN)

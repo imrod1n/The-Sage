@@ -1,4 +1,5 @@
 import config
+import logger
 from openai import OpenAI
 
 user_context = {}
@@ -36,5 +37,5 @@ def ask_ai(user_id, prompt):
         return answer
     
     except Exception as e:
-        logging.error(f"Ошибка API: {e}")
+        logger.logging.error(f"Ошибка API: {e}")
         answer = config.API_ERROR_MESSAGE
