@@ -71,6 +71,7 @@ def ask_ai(user_id, prompt):
     system_message = user_context[user_id][0]
     history = user_context[user_id][1:]
 
+    history.append({"role": "user", "content": prompt})
     history = history[-10:]
 
     user_context[user_id] = [system_message] + history
